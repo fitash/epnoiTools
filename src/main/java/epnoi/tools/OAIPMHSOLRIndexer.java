@@ -5,8 +5,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -44,8 +46,7 @@ public class OAIPMHSOLRIndexer extends CommandLineTool {
 	/*
 	 * OAIPMHIndexer -in where-oaipmh-harvest-dir -repository name
 	 * 
-	 * -name arxiv -in /JUNK (/JUNK/OAIPMH/harvests/arxive/harvest should exist
-	 * )
+	 * -name arxiv -in /JUNK (/JUNK/OAIPMH/harvests/arxiv/harvest should exist )
 	 */
 	public static void main(String[] args) throws Exception {
 
@@ -99,7 +100,7 @@ public class OAIPMHSOLRIndexer extends CommandLineTool {
 	}
 
 	public OAIPMHSOLRIndexer(String indexDir) {
-		
+
 		this.server = new HttpSolrServer(indexDir);
 	}
 
@@ -140,7 +141,7 @@ public class OAIPMHSOLRIndexer extends CommandLineTool {
 			 */
 			System.out
 					.println("Indexing document--------------------------------------");
-			System.out.println(document);
+			//System.out.println(document);
 			this.server.add(document);
 
 		}
@@ -208,7 +209,7 @@ public class OAIPMHSOLRIndexer extends CommandLineTool {
 		newnodes = recordElement.getElementsByTagName("dc:creator");
 
 		for (int j = 0; j < newnodes.getLength(); j++) {
-			System.out.println("-" + newnodes.item(j).getTextContent());
+			//System.out.println("-" + newnodes.item(j).getTextContent());
 			newDocument.addField("creator", newnodes.item(j).getTextContent());
 
 		}
@@ -222,6 +223,7 @@ public class OAIPMHSOLRIndexer extends CommandLineTool {
 
 		newnodes = recordElement.getElementsByTagName("dc:date");
 
+		ArrayList<Date> dates = new ArrayList<Date>();
 		for (int j = 0; j < newnodes.getLength(); j++) {
 
 			try {
@@ -230,8 +232,7 @@ public class OAIPMHSOLRIndexer extends CommandLineTool {
 						"yyyy-MM-dd");
 				Date date = formatoDeFecha.parse(newnodes.item(j)
 						.getTextContent());
-				String indexFormatDate = simpleDateFormat.format(date);
-				newDocument.addField("date", indexFormatDate);
+				dates.add(date);
 
 			} catch (DOMException e) {
 				// TODO Auto-generated catch block
@@ -241,6 +242,13 @@ public class OAIPMHSOLRIndexer extends CommandLineTool {
 				e.printStackTrace();
 			}
 
+		}
+		if (dates.size() > 1) {
+			Date date = _getEarliestDate(dates);
+			//System.out.println("The earliest date is " + date);
+			String indexFormatDate = simpleDateFormat.format(date);
+
+			newDocument.addField("date", indexFormatDate);
 		}
 
 		newnodes = recordElement.getElementsByTagName("dc:description");
@@ -258,6 +266,18 @@ public class OAIPMHSOLRIndexer extends CommandLineTool {
 
 		return newDocument;
 
+	}
+
+	// -----------------------------------------------------------------------------------------------------------------
+
+	private Date _getEarliestDate(List<Date> dates) {
+		Date earliestDate = dates.get(0);
+		for (int i = 1; i < dates.size(); i++) {
+			if (earliestDate.compareTo(dates.get(i)) > 0) {
+				earliestDate = dates.get(i);
+			}
+		}
+		return earliestDate;
 	}
 
 	// --------------------------------------------------------------------------------------------------------------------------
